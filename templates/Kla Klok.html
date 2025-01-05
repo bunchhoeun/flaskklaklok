@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kla Klok</title>
+</head>
+<style>
+    body{
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        font-family: Arial, sans-serif;
+    }
+    .container h1{
+        text-align: center;
+        font-family: 'Khmer OS Siemreap';
+    }
+    .top {
+        margin-top: -15px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .image-item {
+        text-align: center;
+    }
+
+    .image-item img {
+        width: 250px;
+        height: 250px;
+        object-fit: cover;
+        border: 15px solid #eeff00;
+        border-radius: 30px;
+        margin-top: 10px;
+        margin-bottom: -15px;
+        transition: border-color 0.3s ease;
+    }
+
+    .blue-border {
+        border-color: rgb(228, 15, 15) !important;
+    }
+
+    .bottom{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        font-family: Arial, sans-serif;
+    }
+    .bottom .dice{
+        background-color: rgb(216, 8, 8) ;
+        border-radius: 15px;
+        padding: 10px;
+        margin: 0px 50px;
+    }
+    .bottom img{
+        display: inline;
+        width: 110px;
+        height: 110px;
+        object-fit: cover;
+        padding: 5px 10px;
+    }
+    .bottom button{
+        width: 175px;
+        height: 75px;
+        font-size: 30px;
+        border: 0;
+        color: white;
+        border-radius: 20px;
+        box-shadow: firebrick;
+    }    
+</style>
+
+<body>
+    <div class="container" id="app">    
+        <h1>ល្បែងស៊ីសងបែបខ្មែរ</h1>    
+        <div class="top">
+            <div v-for="item in items" :key="item.id" class="image-item" @click="bet(item)">
+                <img :src="item.src" :alt="item.alt" :class="getBorderClass(item)">
+                <h3>[[ item.count ]] $</h3>
+            </div>
+        </div>
+        <div class="bottom">
+            <button @click="shakeStart" style="background-color: green;">Start Game</button>
+            <div class="dice">
+                <img v-bind:src="'static/img/' + dice1 + '.png'" alt="Dice 1">
+                <img v-bind:src="'static/img/' + dice2 + '.png'" alt="Dice 2">
+                <img v-bind:src="'static/img/' + dice3 + '.png'" alt="Dice 3">
+            </div>
+            <button @click="shakeStop" style="background-color: red;">Stop</button>
+            <button @click="clear" style="background-color: rgb(122, 255, 204);">Clear</button>
+        </div>
+        <audio id="clickSound" src="static/voice/click.mp3"></audio>        
+        <audio id="bgsound" src="static/voice/bgsound.mp3"></audio>   
+        <audio id="winSound" src="static/voice/success.mp3"></audio>   
+        <audio id="loseSound" src="static/voice/error.mp3"></audio>
+    </div>    
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script>
+    var app = new Vue({
+      el: '#app',
+        delimiters: ['[[', ']]'],
+      data: { 
+        items: [
+            { id: 1, src: 'static/img/1.png', alt: 'Image 1', count: 0,},
+            { id: 2, src: 'static/img/2.png', alt: 'Image 2', count: 0,},
+            { id: 3, src: 'static/img/3.png', alt: 'Image 3', count: 0,},
+            { id: 4, src: 'static/img/4.png', alt: 'Image 4', count: 0,},
+            { id: 5, src: 'static/img/5.png', alt: 'Image 5', count: 0,},
+            { id: 6, src: 'static/img/6.png', alt: 'Image 6', count: 0,}
+        ],       
+        max: 6,
+        min: 1,
+        dice1: 1,
+        dice2: 1,
+        dice3: 1,
+        shakeInterval: null,
+        betItems: []
+      },
+      methods: {
+        rollDice() {
+          this.dice1 = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+          this.dice2 = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+          this.dice3 = Math.floor(Math.random() * (this.max - this.min + 1)) + this.min;
+        },
+        shakeStart() {
+          if (!this.shakeInterval) {
+            this.shakeInterval = setInterval(this.rollDice, 10);
+            const sound = document.getElementById('bgsound');
+            sound.currentTime = 0;
+            sound.play();
+          }
+        },
+        shakeStop(){
+            clearInterval(this.shakeInterval);
+            this.shakeInterval = null;
+            const sound = document.getElementById('bgsound');
+            sound.currentTime = 0;
+            sound.pause();
+            this.checkMatch();
+        },
+        checkMatch() {
+          const dice = [this.dice1, this.dice2, this.dice3];
+          const matched = this.betItems.some(item => dice.includes(item));
+          const win = document.getElementById('winSound');
+          const lose = document.getElementById('loseSound');
+
+          if (matched) {
+                win.currentTime = 0;
+                win.play();
+          } else {
+                lose.currentTime = 0;
+                lose.play();
+          }
+        },
+        clear(){
+            const win = document.getElementById('winSound');
+            win.play();
+            this.betItems = [];
+            this.items.forEach((item)=>{
+                item.count=0;
+            });
+        },
+        bet(item) {
+            item.count += 100;
+            const sound = document.getElementById('clickSound');
+            sound.currentTime = 0;
+            sound.play();
+            // this.playSound(item);
+            if (!this.betItems.includes(item.id)) {
+                this.betItems.push(item.id);
+            }
+        },
+        getBorderClass(item) {
+          if (item.id === this.dice1 || item.id === this.dice2 || item.id === this.dice3) {
+            return 'blue-border';
+          }
+          return '';
+        },
+        playSound(item) {
+          item.sound.currentTime = 0;
+          item.sound.play();
+        }
+      }
+    });
+</script>
+</html>
